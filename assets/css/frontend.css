@@ -6,7 +6,13 @@
    Alle Layout-Eigenschaften des Icons selbst stehen mit !important: Themes/Page-
    Builder setzen auf Galerie-/Produktbildern oft eigene img{width:100%}-Regeln
    mit höherer Spezifität als unsere einfache Klasse – ohne !important würde das
-   Icon dann auf die volle Bildbreite gestreckt (live beobachtet auf moai.style). */
+   Icon dann auf die volle Bildbreite gestreckt (live beobachtet auf moai.style).
+
+   z-index bewusst NIEDRIG (5): Das Icon soll nur über seinem eigenen Bild liegen,
+   nicht über fixierten Headern/Sticky-Menüs/Modals der Seite. Ein absolut
+   positioniertes Element malt ohnehin schon über normalen Inhalt, ein sehr hoher
+   z-index wie 9999 würde dagegen auch bewusst darüberliegende Navigation
+   durchbrechen (live beobachtet: Icon lag über dem Sticky-Menü auf moai.style). */
 
 .fgr-ail-wrap {
     position: relative;
@@ -32,7 +38,7 @@
     max-height: 50px !important;
     object-fit: contain !important;
     pointer-events: none !important;
-    z-index: 9999 !important;
+    z-index: 5 !important;
 }
 
 [style*="--fgr-ail-logo"]::after {
@@ -49,5 +55,5 @@
     background-repeat: no-repeat !important;
     background-size: contain !important;
     pointer-events: none !important;
-    z-index: 9999 !important;
+    z-index: 5 !important;
 }
