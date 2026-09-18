@@ -1,7 +1,12 @@
 /* FGR AI Label – Basis-Styles für das Kennzeichnungs-Icon.
    Position/Abstand/Höhe kommen als CSS-Custom-Properties direkt vom jeweiligen
    Element (Inline-Style) – bewusst NICHT über wp_add_inline_style nachgeladen,
-   da manche Cache-/Optimierungs-Plugins dynamisch angehängtes CSS filtern. */
+   da manche Cache-/Optimierungs-Plugins dynamisch angehängtes CSS filtern.
+
+   Alle Layout-Eigenschaften des Icons selbst stehen mit !important: Themes/Page-
+   Builder setzen auf Galerie-/Produktbildern oft eigene img{width:100%}-Regeln
+   mit höherer Spezifität als unsere einfache Klasse – ohne !important würde das
+   Icon dann auf die volle Bildbreite gestreckt (live beobachtet auf moai.style). */
 
 .fgr-ail-wrap {
     position: relative;
@@ -16,31 +21,33 @@
 }
 
 .fgr-ail-badge {
-    position: absolute;
-    top: var(--fgr-ail-top, auto);
-    right: var(--fgr-ail-right, auto);
-    bottom: var(--fgr-ail-bottom, auto);
-    left: var(--fgr-ail-left, auto);
-    height: var(--fgr-ail-h, 32px);
-    width: auto;
-    max-height: 50px;
-    pointer-events: none;
-    z-index: 9999;
+    position: absolute !important;
+    top: var(--fgr-ail-top, auto) !important;
+    right: var(--fgr-ail-right, auto) !important;
+    bottom: var(--fgr-ail-bottom, auto) !important;
+    left: var(--fgr-ail-left, auto) !important;
+    height: var(--fgr-ail-h, 32px) !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: 50px !important;
+    object-fit: contain !important;
+    pointer-events: none !important;
+    z-index: 9999 !important;
 }
 
 [style*="--fgr-ail-logo"]::after {
-    content: "";
-    position: absolute;
-    top: var(--fgr-ail-top, auto);
-    right: var(--fgr-ail-right, auto);
-    bottom: var(--fgr-ail-bottom, auto);
-    left: var(--fgr-ail-left, auto);
-    height: var(--fgr-ail-h, 32px);
-    width: var(--fgr-ail-w, auto);
-    max-height: 50px;
-    background-image: var(--fgr-ail-logo);
-    background-repeat: no-repeat;
-    background-size: contain;
-    pointer-events: none;
-    z-index: 9999;
+    content: "" !important;
+    position: absolute !important;
+    top: var(--fgr-ail-top, auto) !important;
+    right: var(--fgr-ail-right, auto) !important;
+    bottom: var(--fgr-ail-bottom, auto) !important;
+    left: var(--fgr-ail-left, auto) !important;
+    height: var(--fgr-ail-h, 32px) !important;
+    width: var(--fgr-ail-w, auto) !important;
+    max-height: 50px !important;
+    background-image: var(--fgr-ail-logo) !important;
+    background-repeat: no-repeat !important;
+    background-size: contain !important;
+    pointer-events: none !important;
+    z-index: 9999 !important;
 }
