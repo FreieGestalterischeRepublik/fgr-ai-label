@@ -2,7 +2,7 @@
 /**
  * Plugin Name:  FGR AI Label
  * Description:  Ein Plugin der Freien Gestalterischen Republik. Kennzeichnet KI-generierte oder KI-bearbeitete Bilder automatisch mit einem Logo (gemäß EU-Kennzeichnungspflicht für KI-Inhalte) – funktioniert in Gutenberg, ACF, Elementor und WPBakery, ohne das Bild selbst zu verändern.
- * Version:      1.1.0
+ * Version:      1.1.1
  * Author:       Freie Gestalterische Republik
  * Author URI:   https://fgr.design
  * License:      GPL-2.0-or-later
@@ -13,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FGR_AIL_VERSION', '1.1.0' );
+define( 'FGR_AIL_VERSION', '1.1.1' );
 define( 'FGR_AIL_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'FGR_AIL_URL',     plugin_dir_url( __FILE__ ) );
 
@@ -57,6 +57,24 @@ function fgr_ail_logo_ratio( string $type ): float {
 
 function fgr_ail_logo_url( string $type, string $color ): string {
     return FGR_AIL_URL . 'assets/img/' . $type . '-' . $color . '.svg';
+}
+
+/**
+ * CSS-Custom-Properties für Position/Größe, direkt als Inline-Style ausgegeben.
+ * Bewusst NICHT über ein separat eingebundenes Stylesheet gelöst: Cache- oder
+ * CSS-Optimierungs-Plugins auf Kundenseiten filtern/verzögern dynamisch per
+ * wp_add_inline_style nachgeladenes CSS mitunter, wodurch die Höhen-Begrenzung
+ * wegfällt und das Icon riesig dargestellt wird.
+ */
+function fgr_ail_position_vars( array $settings ): string {
+    [ $v, $h ] = explode( '-', $settings['position'] ); // "bottom-left" -> top/bottom, left/right
+    $margin = $settings['margin'];
+
+    $vars = "--fgr-ail-h:{$settings['height']}px;--fgr-ail-{$v}:{$margin}px;--fgr-ail-{$h}:{$margin}px";
+    $vars .= ';--fgr-ail-' . ( 'top' === $v ? 'bottom' : 'top' ) . ':auto';
+    $vars .= ';--fgr-ail-' . ( 'left' === $h ? 'right' : 'left' ) . ':auto';
+
+    return $vars;
 }
 
 function fgr_ail_get_settings(): array {
@@ -146,7 +164,11 @@ function fgr_ail_get_map(): array {
         }
     }
 
-    $map = [ 'by_id' => $by_id, 'by_url' => $by_url ];
+    $map = [
+        'by_id'    => $by_id,
+        'by_url'   => $by_url,
+        'pos_vars' => fgr_ail_position_vars( $settings ),
+    ];
     set_transient( 'fgr_ail_map', $map, DAY_IN_SECONDS );
     return $map;
 }
@@ -163,22 +185,31 @@ add_action( 'plugins_loaded', function () {
     new FGR_AI_Label_Render();
 } );
 
-// CSS für Badge/Logo einbinden – nur wenn tatsächlich markierte Bilder existieren
+// Statisches CSS einbinden – nur wenn tatsächlich markierte Bilder existieren.
+// Höhe/Position kommen als Inline-Style direkt am Element (siehe FGR_AI_Label_Render),
+// damit sie auch bei Cache-/CSS-Optimierungs-Plugins zuverlässig ankommen.
 add_action( 'wp_enqueue_scripts', function () {
     if ( is_admin() ) return;
     $map = fgr_ail_get_map();
     if ( empty( $map['by_id'] ) ) return;
 
-    $settings = fgr_ail_get_settings();
     wp_enqueue_style( 'fgr-ai-label', FGR_AIL_URL . 'assets/css/frontend.css', [], FGR_AIL_VERSION );
-
-    [ $v, $h ] = explode( '-', $settings['position'] ); // z.B. "bottom-left" -> top/bottom, left/right
-    $corner = "{$v}:{$settings['margin']}px;{$h}:{$settings['margin']}px;";
-
-    $css = ".fgr-ail-badge{{$corner}height:{$settings['height']}px}";
-    $css .= "[style*=\"--fgr-ail-logo\"]::after{{$corner}height:{$settings['height']}px;width:var(--fgr-ail-w)}";
-    wp_add_inline_style( 'fgr-ai-label', $css );
 } );
+
+// Warnung, falls das Plugin über "Code herunterladen" statt über den Update-Checker
+// installiert wurde – landet dann im falschen Ordner "fgr-ai-label-main".
+if ( is_admin() && substr( untrailingslashit( FGR_AIL_DIR ), -5 ) === '-main' ) {
+    add_action( 'admin_notices', function () {
+        $zip_url = 'https://github.com/FreieGestalterischeRepublik/fgr-ai-label/releases/latest';
+        echo '<div class="notice notice-error"><p>'
+            . '<strong>FGR AI Label:</strong> Das Plugin ist im falschen Ordner installiert '
+            . '(<code>' . esc_html( basename( FGR_AIL_DIR ) ) . '</code>). '
+            . 'Bitte das Plugin <strong>deaktivieren → löschen → neu installieren</strong>. '
+            . 'Deine Einstellungen bleiben dabei erhalten. '
+            . '<a href="' . esc_url( $zip_url ) . '" target="_blank">ZIP herunterladen →</a>'
+            . '</p></div>';
+    } );
+}
 
 // Cache leeren, wenn ein als "KI-generiert" markiertes Bild gelöscht wird
 add_action( 'delete_attachment', function ( $post_id ) {

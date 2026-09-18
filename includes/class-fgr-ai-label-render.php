@@ -20,6 +20,9 @@ class FGR_AI_Label_Render {
     /** @var array<string,int> Elementor-Element-ID => Attachment-ID (nur "Klassik"-Hintergrundbild) */
     private array $elementor_map = [];
 
+    /** CSS-Custom-Properties für Position/Höhe, als Inline-Style an jedes Icon gehängt. */
+    private string $pos_vars = '';
+
     public function __construct() {
         add_action( 'init', [ $this, 'maybe_start_buffer' ], 1000 );
     }
@@ -33,8 +36,9 @@ class FGR_AI_Label_Render {
         $map = fgr_ail_get_map();
         if ( empty( $map['by_id'] ) ) return; // keine markierten Bilder -> nichts zu tun
 
-        $this->by_id  = $map['by_id'];
-        $this->by_url = $map['by_url'];
+        $this->by_id    = $map['by_id'];
+        $this->by_url   = $map['by_url'];
+        $this->pos_vars = $map['pos_vars'] ?? '';
 
         add_action( 'wp', [ $this, 'load_elementor_map' ] );
         ob_start( [ $this, 'process' ] );
@@ -97,7 +101,8 @@ class FGR_AI_Label_Render {
             if ( ! $id || ! isset( $this->by_id[ $id ] ) ) return $tag;
 
             $logo  = esc_url( $this->by_id[ $id ]['logo'] );
-            $badge = '<img class="fgr-ail-badge" src="' . $logo . '" alt="KI-generiert" loading="lazy">';
+            $style = esc_attr( $this->pos_vars );
+            $badge = '<img class="fgr-ail-badge" style="' . $style . '" src="' . $logo . '" alt="KI-generiert" loading="lazy">';
 
             return '<span class="fgr-ail-wrap">' . $tag . $badge . '</span>';
         }, $html );
@@ -155,7 +160,7 @@ class FGR_AI_Label_Render {
                 }
 
                 $entry = $this->by_id[ $att_id ];
-                $prop  = "position:relative;--fgr-ail-logo:url('" . esc_url_raw( $entry['logo'] ) . "');--fgr-ail-w:{$entry['logo_w']}px";
+                $prop  = "position:relative;--fgr-ail-logo:url('" . esc_url_raw( $entry['logo'] ) . "');--fgr-ail-w:{$entry['logo_w']}px;{$this->pos_vars}";
 
                 if ( preg_match( '/\bstyle="([^"]*)"/i', $attrs, $sm2 ) ) {
                     $new_style = rtrim( $sm2[1], '; ' ) . ';' . $prop;

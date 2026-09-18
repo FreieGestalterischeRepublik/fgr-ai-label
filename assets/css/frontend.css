@@ -1,5 +1,7 @@
-/* FGR AI Label – Basis-Styles für das Kennzeichnungs-Logo.
-   Position, Abstand und Höhe werden dynamisch über wp_add_inline_style ergänzt. */
+/* FGR AI Label – Basis-Styles für das Kennzeichnungs-Icon.
+   Position/Abstand/Höhe kommen als CSS-Custom-Properties direkt vom jeweiligen
+   Element (Inline-Style) – bewusst NICHT über wp_add_inline_style nachgeladen,
+   da manche Cache-/Optimierungs-Plugins dynamisch angehängtes CSS filtern. */
 
 .fgr-ail-wrap {
     position: relative;
@@ -15,7 +17,13 @@
 
 .fgr-ail-badge {
     position: absolute;
+    top: var(--fgr-ail-top, auto);
+    right: var(--fgr-ail-right, auto);
+    bottom: var(--fgr-ail-bottom, auto);
+    left: var(--fgr-ail-left, auto);
+    height: var(--fgr-ail-h, 32px);
     width: auto;
+    max-height: 50px;
     pointer-events: none;
     z-index: 9999;
 }
@@ -23,6 +31,13 @@
 [style*="--fgr-ail-logo"]::after {
     content: "";
     position: absolute;
+    top: var(--fgr-ail-top, auto);
+    right: var(--fgr-ail-right, auto);
+    bottom: var(--fgr-ail-bottom, auto);
+    left: var(--fgr-ail-left, auto);
+    height: var(--fgr-ail-h, 32px);
+    width: var(--fgr-ail-w, auto);
+    max-height: 50px;
     background-image: var(--fgr-ail-logo);
     background-repeat: no-repeat;
     background-size: contain;
