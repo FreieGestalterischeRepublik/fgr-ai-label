@@ -2,7 +2,7 @@
 /**
  * Plugin Name:  FGR AI Label
  * Description:  Ein Plugin der Freien Gestalterischen Republik. Kennzeichnet KI-generierte oder KI-bearbeitete Bilder automatisch mit einem Logo (gemäß EU-Kennzeichnungspflicht für KI-Inhalte) – funktioniert in Gutenberg, ACF, Elementor und WPBakery, ohne das Bild selbst zu verändern.
- * Version:      1.1.1
+ * Version:      1.1.2
  * Author:       Freie Gestalterische Republik
  * Author URI:   https://fgr.design
  * License:      GPL-2.0-or-later
@@ -13,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FGR_AIL_VERSION', '1.1.1' );
+define( 'FGR_AIL_VERSION', '1.1.2' );
 define( 'FGR_AIL_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'FGR_AIL_URL',     plugin_dir_url( __FILE__ ) );
 
@@ -25,6 +25,7 @@ $fgr_ail_updater = YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChe
     'fgr-ai-label'
 );
 $fgr_ail_updater->setBranch( 'main' );
+$fgr_ail_updater->getVcsApi()->enableReleaseAssets();
 
 require_once FGR_AIL_DIR . 'includes/class-fgr-ai-label-settings.php';
 require_once FGR_AIL_DIR . 'includes/class-fgr-ai-label-media.php';
