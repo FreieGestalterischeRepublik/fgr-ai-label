@@ -1,0 +1,177 @@
+<?php
+/**
+ * Plugin Name:  FGR AI Label
+ * Description:  Ein Plugin der Freien Gestalterischen Republik. Kennzeichnet KI-generierte oder KI-bearbeitete Bilder automatisch mit einem Logo (gemäß EU-Kennzeichnungspflicht für KI-Inhalte) – funktioniert in Gutenberg, ACF, Elementor und WPBakery, ohne das Bild selbst zu verändern.
+ * Version:      1.0.0
+ * Author:       Freie Gestalterische Republik
+ * Author URI:   https://fgr.design
+ * License:      GPL-2.0-or-later
+ * Requires PHP: 7.4
+ * Requires at least: 6.0
+ * Text Domain:  fgr-ai-label
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+define( 'FGR_AIL_VERSION', '1.0.0' );
+define( 'FGR_AIL_DIR',     plugin_dir_path( __FILE__ ) );
+define( 'FGR_AIL_URL',     plugin_dir_url( __FILE__ ) );
+
+// Update-Checker: prüft GitHub auf neue Versionen
+require_once FGR_AIL_DIR . 'lib/plugin-update-checker/plugin-update-checker.php';
+$fgr_ail_updater = YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
+    'https://github.com/FreieGestalterischeRepublik/fgr-ai-label/',
+    __FILE__,
+    'fgr-ai-label'
+);
+$fgr_ail_updater->setBranch( 'main' );
+
+require_once FGR_AIL_DIR . 'includes/class-fgr-ai-label-settings.php';
+require_once FGR_AIL_DIR . 'includes/class-fgr-ai-label-media.php';
+require_once FGR_AIL_DIR . 'includes/class-fgr-ai-label-render.php';
+
+/**
+ * Die 3 Kennzeichnungs-Typen gemäß EU-Vorgabe für KI-Inhalte.
+ * https://digital-strategy.ec.europa.eu/de/policies/eu-icons-labelling-ai-generated-content
+ */
+function fgr_ail_types(): array {
+    return [
+        'basic'     => 'Basis-Symbol (KI beteiligt)',
+        'generated' => 'Vollständig KI-generiert',
+        'modified'  => 'Teilweise KI-modifiziert',
+    ];
+}
+
+function fgr_ail_get_settings(): array {
+    $defaults = [
+        'position' => 'bottom-left', // bottom-left | bottom-right | top-left | top-right
+        'margin'   => 12,
+        'height'   => 32,
+        'logos'    => [ 'basic' => 0, 'generated' => 0, 'modified' => 0 ],
+    ];
+
+    $opt           = (array) get_option( 'fgr_ai_label_settings', [] );
+    $opt           = array_merge( $defaults, $opt );
+    $opt['logos']  = array_merge( $defaults['logos'], (array) ( $opt['logos'] ?? [] ) );
+    $opt['margin'] = max( 0, (int) $opt['margin'] );
+    $opt['height'] = max( 8, (int) $opt['height'] );
+
+    if ( ! in_array( $opt['position'], [ 'bottom-left', 'bottom-right', 'top-left', 'top-right' ], true ) ) {
+        $opt['position'] = 'bottom-left';
+    }
+
+    return $opt;
+}
+
+function fgr_ail_update_settings( array $data ): void {
+    update_option( 'fgr_ai_label_settings', $data, false );
+    delete_transient( 'fgr_ail_map' );
+}
+
+/**
+ * Baut die Zuordnung "markierte Bilder -> Logo-URL/-Größe" und "Bild-URL -> Attachment-ID".
+ * Wird für einen Tag zwischengespeichert, damit nicht bei jedem Seitenaufruf neu abgefragt wird.
+ *
+ * @return array{by_id: array<int,array{type:string,logo:string,logo_w:int}>, by_url: array<string,int>}
+ */
+function fgr_ail_get_map(): array {
+    $cached = get_transient( 'fgr_ail_map' );
+    if ( is_array( $cached ) && isset( $cached['by_id'], $cached['by_url'] ) ) {
+        return $cached;
+    }
+
+    $settings = fgr_ail_get_settings();
+    $by_id    = [];
+    $by_url   = [];
+
+    // Intrinsische Breite je Logo-Typ für die konfigurierte Höhe vorberechnen
+    // (nötig für Hintergrundbilder, die keine eigene Bild-Breite/-Höhe wie <img> haben).
+    $logo_widths = [];
+    foreach ( $settings['logos'] as $type => $logo_id ) {
+        if ( ! $logo_id ) continue;
+        $meta = wp_get_attachment_metadata( (int) $logo_id );
+        $w    = (int) ( $meta['width']  ?? 0 );
+        $h    = (int) ( $meta['height'] ?? 0 );
+        $logo_widths[ $type ] = ( $w && $h ) ? (int) round( $settings['height'] * $w / $h ) : $settings['height'];
+    }
+
+    $ids = get_posts( [
+        'post_type'      => 'attachment',
+        'post_status'    => 'inherit',
+        'posts_per_page' => -1,
+        'fields'         => 'ids',
+        'meta_key'       => '_fgr_ai_label_enabled',
+        'meta_value'     => '1',
+        'no_found_rows'  => true,
+    ] );
+
+    foreach ( $ids as $id ) {
+        $type    = get_post_meta( $id, '_fgr_ai_label_type', true ) ?: 'basic';
+        $logo_id = (int) ( $settings['logos'][ $type ] ?? 0 );
+        if ( ! $logo_id ) continue;
+
+        $logo_url = wp_get_attachment_image_url( $logo_id, 'full' );
+        if ( ! $logo_url ) continue;
+
+        $by_id[ $id ] = [
+            'type'   => $type,
+            'logo'   => $logo_url,
+            'logo_w' => $logo_widths[ $type ] ?? $settings['height'],
+        ];
+
+        $base = wp_get_attachment_url( $id );
+        if ( $base ) {
+            $by_url[ fgr_ail_normalize_url( $base ) ] = $id;
+        }
+
+        $meta = wp_get_attachment_metadata( $id );
+        if ( $base && ! empty( $meta['sizes'] ) ) {
+            $dir = trailingslashit( dirname( $base ) );
+            foreach ( $meta['sizes'] as $size ) {
+                if ( ! empty( $size['file'] ) ) {
+                    $by_url[ fgr_ail_normalize_url( $dir . $size['file'] ) ] = $id;
+                }
+            }
+        }
+    }
+
+    $map = [ 'by_id' => $by_id, 'by_url' => $by_url ];
+    set_transient( 'fgr_ail_map', $map, DAY_IN_SECONDS );
+    return $map;
+}
+
+function fgr_ail_normalize_url( string $url ): string {
+    $url = (string) strtok( $url, '?' );
+    $url = (string) preg_replace( '/-\d+x\d+(?=\.\w+$)/', '', $url );
+    return strtolower( $url );
+}
+
+add_action( 'plugins_loaded', function () {
+    new FGR_AI_Label_Settings();
+    new FGR_AI_Label_Media();
+    new FGR_AI_Label_Render();
+} );
+
+// CSS für Badge/Logo einbinden – nur wenn tatsächlich markierte Bilder existieren
+add_action( 'wp_enqueue_scripts', function () {
+    if ( is_admin() ) return;
+    $map = fgr_ail_get_map();
+    if ( empty( $map['by_id'] ) ) return;
+
+    $settings = fgr_ail_get_settings();
+    wp_enqueue_style( 'fgr-ai-label', FGR_AIL_URL . 'assets/css/frontend.css', [], FGR_AIL_VERSION );
+
+    [ $v, $h ] = explode( '-', $settings['position'] ); // z.B. "bottom-left" -> top/bottom, left/right
+    $corner = "{$v}:{$settings['margin']}px;{$h}:{$settings['margin']}px;";
+
+    $css = ".fgr-ail-badge{{$corner}height:{$settings['height']}px}";
+    $css .= "[style*=\"--fgr-ail-logo\"]::after{{$corner}height:{$settings['height']}px;width:var(--fgr-ail-w)}";
+    wp_add_inline_style( 'fgr-ai-label', $css );
+} );
+
+// Cache leeren, wenn ein als "KI-generiert" markiertes Bild gelöscht wird
+add_action( 'delete_attachment', function ( $post_id ) {
+    if ( get_post_meta( $post_id, '_fgr_ai_label_enabled', true ) ) {
+        delete_transient( 'fgr_ail_map' );
+    }
+} );

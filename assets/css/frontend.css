@@ -1,0 +1,31 @@
+/* FGR AI Label – Basis-Styles für das Kennzeichnungs-Logo.
+   Position, Abstand und Höhe werden dynamisch über wp_add_inline_style ergänzt. */
+
+.fgr-ail-wrap {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    line-height: 0;
+}
+
+.fgr-ail-wrap > img:not(.fgr-ail-badge) {
+    max-width: 100%;
+    height: auto;
+}
+
+.fgr-ail-badge {
+    position: absolute;
+    width: auto;
+    pointer-events: none;
+    z-index: 9999;
+}
+
+[style*="--fgr-ail-logo"]::after {
+    content: "";
+    position: absolute;
+    background-image: var(--fgr-ail-logo);
+    background-repeat: no-repeat;
+    background-size: contain;
+    pointer-events: none;
+    z-index: 9999;
+}
