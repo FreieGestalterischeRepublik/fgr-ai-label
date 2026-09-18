@@ -2,7 +2,7 @@
 /**
  * Plugin Name:  FGR AI Label
  * Description:  Ein Plugin der Freien Gestalterischen Republik. Kennzeichnet KI-generierte oder KI-bearbeitete Bilder automatisch mit einem Logo (gemäß EU-Kennzeichnungspflicht für KI-Inhalte) – funktioniert in Gutenberg, ACF, Elementor und WPBakery, ohne das Bild selbst zu verändern.
- * Version:      1.0.0
+ * Version:      1.1.0
  * Author:       Freie Gestalterische Republik
  * Author URI:   https://fgr.design
  * License:      GPL-2.0-or-later
@@ -13,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FGR_AIL_VERSION', '1.0.0' );
+define( 'FGR_AIL_VERSION', '1.1.0' );
 define( 'FGR_AIL_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'FGR_AIL_URL',     plugin_dir_url( __FILE__ ) );
 
@@ -42,22 +42,41 @@ function fgr_ail_types(): array {
     ];
 }
 
+/**
+ * Seitenverhältnis (Breite/Höhe) der mitgelieferten offiziellen EU-Icons,
+ * aus deren SVG-viewBox entnommen – für die Breitenberechnung bei fester Höhe.
+ */
+function fgr_ail_logo_ratio( string $type ): float {
+    $ratios = [
+        'basic'     => 566.93 / 566.93,
+        'generated' => 1789.84 / 566.93,
+        'modified'  => 1700.79 / 566.93,
+    ];
+    return $ratios[ $type ] ?? 1.0;
+}
+
+function fgr_ail_logo_url( string $type, string $color ): string {
+    return FGR_AIL_URL . 'assets/img/' . $type . '-' . $color . '.svg';
+}
+
 function fgr_ail_get_settings(): array {
     $defaults = [
         'position' => 'bottom-left', // bottom-left | bottom-right | top-left | top-right
         'margin'   => 12,
         'height'   => 32,
-        'logos'    => [ 'basic' => 0, 'generated' => 0, 'modified' => 0 ],
+        'color'    => 'black', // black | white
     ];
 
     $opt           = (array) get_option( 'fgr_ai_label_settings', [] );
     $opt           = array_merge( $defaults, $opt );
-    $opt['logos']  = array_merge( $defaults['logos'], (array) ( $opt['logos'] ?? [] ) );
     $opt['margin'] = max( 0, (int) $opt['margin'] );
-    $opt['height'] = max( 8, (int) $opt['height'] );
+    $opt['height'] = max( 8, min( 50, (int) $opt['height'] ) );
 
     if ( ! in_array( $opt['position'], [ 'bottom-left', 'bottom-right', 'top-left', 'top-right' ], true ) ) {
         $opt['position'] = 'bottom-left';
+    }
+    if ( ! in_array( $opt['color'], [ 'black', 'white' ], true ) ) {
+        $opt['color'] = 'black';
     }
 
     return $opt;
@@ -87,12 +106,8 @@ function fgr_ail_get_map(): array {
     // Intrinsische Breite je Logo-Typ für die konfigurierte Höhe vorberechnen
     // (nötig für Hintergrundbilder, die keine eigene Bild-Breite/-Höhe wie <img> haben).
     $logo_widths = [];
-    foreach ( $settings['logos'] as $type => $logo_id ) {
-        if ( ! $logo_id ) continue;
-        $meta = wp_get_attachment_metadata( (int) $logo_id );
-        $w    = (int) ( $meta['width']  ?? 0 );
-        $h    = (int) ( $meta['height'] ?? 0 );
-        $logo_widths[ $type ] = ( $w && $h ) ? (int) round( $settings['height'] * $w / $h ) : $settings['height'];
+    foreach ( array_keys( fgr_ail_types() ) as $type ) {
+        $logo_widths[ $type ] = (int) round( $settings['height'] * fgr_ail_logo_ratio( $type ) );
     }
 
     $ids = get_posts( [
@@ -106,17 +121,13 @@ function fgr_ail_get_map(): array {
     ] );
 
     foreach ( $ids as $id ) {
-        $type    = get_post_meta( $id, '_fgr_ai_label_type', true ) ?: 'basic';
-        $logo_id = (int) ( $settings['logos'][ $type ] ?? 0 );
-        if ( ! $logo_id ) continue;
-
-        $logo_url = wp_get_attachment_image_url( $logo_id, 'full' );
-        if ( ! $logo_url ) continue;
+        $type = get_post_meta( $id, '_fgr_ai_label_type', true ) ?: 'basic';
+        if ( ! array_key_exists( $type, $logo_widths ) ) continue;
 
         $by_id[ $id ] = [
             'type'   => $type,
-            'logo'   => $logo_url,
-            'logo_w' => $logo_widths[ $type ] ?? $settings['height'],
+            'logo'   => fgr_ail_logo_url( $type, $settings['color'] ),
+            'logo_w' => $logo_widths[ $type ],
         ];
 
         $base = wp_get_attachment_url( $id );

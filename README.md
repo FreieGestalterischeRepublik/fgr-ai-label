@@ -7,8 +7,12 @@ Kennzeichnet KI-generierte oder KI-bearbeitete Bilder automatisch mit einem Logo
 ## Funktionsweise
 
 1. **Mediathek:** Bei jedem Bild kann eine Checkbox „KI-generiert / KI-bearbeitet" aktiviert werden, plus Auswahl einer von 3 Kennzeichnungs-Arten (Basis-Symbol, Vollständig KI-generiert, Teilweise KI-modifiziert).
-2. **Einstellungen:** Für jede der 3 Kennzeichnungs-Arten wird ein eigenes Logo hochgeladen (z.B. die offiziellen EU-Icons in Schwarz/Weiß). Global werden Position (eine der 4 Ecken), Abstand zum Rand und Logo-Höhe festgelegt.
-3. **Anzeige:** Das Plugin fängt die fertige HTML-Ausgabe jeder Seite ab (Output-Buffer) und erkennt markierte Bilder anhand der WordPress-Bild-ID bzw. der Bild-URL – unabhängig davon, mit welchem Editor/Builder sie eingebunden wurden. Das Logo wird per CSS positioniert (`position: absolute`), das Originalbild bleibt unverändert.
+2. **Einstellungen:** Die 3 offiziellen EU-Icons sind fest im Plugin hinterlegt (`assets/img/`, als SVG in Schwarz und Weiß). Global werden Farbe, Position (eine der 4 Ecken), Abstand zum Rand und Icon-Höhe (max. 50 px) festgelegt.
+3. **Anzeige:** Das Plugin fängt die fertige HTML-Ausgabe jeder Seite ab (Output-Buffer) und erkennt markierte Bilder anhand der WordPress-Bild-ID bzw. der Bild-URL – unabhängig davon, mit welchem Editor/Builder sie eingebunden wurden. Das Icon wird per CSS positioniert (`position: absolute`), das Originalbild bleibt unverändert.
+
+## Icons
+
+Die mitgelieferten Icons stammen von der offiziellen EU-Seite zur [Kennzeichnung von KI-Inhalten](https://digital-strategy.ec.europa.eu/de/policies/eu-icons-labelling-ai-generated-content) ("öffentlich zur Verfügung, von jedermann frei verwendbar"). Bereitgestellt werden pro Typ die Varianten Schwarz und Weiß (die 50%-transparenten EU-Varianten sind nicht enthalten, da die Icons ohnehin nur als kleines Badge über dem Bild schweben).
 
 ## Abdeckung nach Einbindungs-Art
 
