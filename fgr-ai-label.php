@@ -2,7 +2,7 @@
 /**
  * Plugin Name:  FGR AI Label
  * Description:  Ein Plugin der Freien Gestalterischen Republik. Kennzeichnet KI-generierte oder KI-bearbeitete Bilder automatisch mit einem Logo (gemäß EU-Kennzeichnungspflicht für KI-Inhalte) – funktioniert in Gutenberg, ACF, Elementor und WPBakery, ohne das Bild selbst zu verändern.
- * Version:      1.1.4
+ * Version:      1.1.5
  * Author:       Freie Gestalterische Republik
  * Author URI:   https://fgr.design
  * License:      GPL-2.0-or-later
@@ -13,19 +13,26 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FGR_AIL_VERSION', '1.1.4' );
+define( 'FGR_AIL_VERSION', '1.1.5' );
 define( 'FGR_AIL_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'FGR_AIL_URL',     plugin_dir_url( __FILE__ ) );
 
 // Update-Checker: prüft GitHub auf neue Versionen
 require_once FGR_AIL_DIR . 'lib/plugin-update-checker/plugin-update-checker.php';
 $fgr_ail_updater = YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
-    'https://github.com/FreieGestalterischeRepublik/fgr-ai-label/',
+    'https://fgr-plugins-api.fgr.design/fgr-ai-label.json',
     __FILE__,
     'fgr-ai-label'
 );
-$fgr_ail_updater->setBranch( 'main' );
-$fgr_ail_updater->getVcsApi()->enableReleaseAssets();
+
+// Auto-Update: WordPress' täglicher Update-Cron installiert neue Versionen
+// dieses Plugins automatisch, kein manueller Klick auf jeder Seite nötig.
+add_filter( 'auto_update_plugin', function ( $update, $item ) {
+    if ( isset( $item->slug ) && $item->slug === 'fgr-ai-label' ) {
+        return true;
+    }
+    return $update;
+}, 10, 2 );
 
 require_once FGR_AIL_DIR . 'includes/class-fgr-ai-label-settings.php';
 require_once FGR_AIL_DIR . 'includes/class-fgr-ai-label-media.php';
