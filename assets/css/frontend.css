@@ -12,11 +12,24 @@
    nicht über fixierten Headern/Sticky-Menüs/Modals der Seite. Ein absolut
    positioniertes Element malt ohnehin schon über normalen Inhalt, ein sehr hoher
    z-index wie 9999 würde dagegen auch bewusst darüberliegende Navigation
-   durchbrechen (live beobachtet: Icon lag über dem Sticky-Menü auf moai.style). */
+   durchbrechen (live beobachtet: Icon lag über dem Sticky-Menü auf moai.style).
+
+   display:block statt inline-block: Viele Themes/Galerien setzen auf ihre <img>
+   eine responsive img{width:100%}-Regel, damit das Bild sich am umgebenden
+   Container (z.B. einer flexiblen Galerie-Zelle) ausrichtet. Ein inline-block-
+   Wrapper hat aber standardmäßig KEINE eigene Breite - er schrumpft auf die
+   Größe seines Inhalts (= das <img>), wodurch 100% vom <img> wieder nur 100%
+   von dessen eigener Ausgangsgröße ergibt, statt sich am echten Container
+   auszurichten. Ergebnis: das Bild bleibt kleiner als gleich große
+   Geschwister-Bilder ohne Kennzeichnung (live beobachtet auf fernandfog.ie und
+   moai.style, Produktgalerie-Thumbnails). display:block füllt dagegen per
+   Default die volle Breite des eigentlichen Elternelements aus, genau wie ein
+   <img> ohne Wrapper es auch täte. */
 
 .fgr-ail-wrap {
     position: relative;
-    display: inline-block;
+    display: block;
+    width: 100%;
     max-width: 100%;
     line-height: 0;
 }

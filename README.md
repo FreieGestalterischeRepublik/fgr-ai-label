@@ -23,6 +23,7 @@ Die mitgelieferten Icons stammen von der offiziellen EU-Seite zur [Kennzeichnung
 | Elementor „Klassik"-Hintergrundbild auf Sections/Columns/Containern (liegt standardmäßig in einer externen CSS-Datei) | ✅ (über `_elementor_data`, nur auf Einzelseiten/-beiträgen – nicht in Archiv-/Loop-Ausgaben von Elementor-Templates) |
 | Elementor Diashow- oder Video-Hintergrund | ❌ (nicht abgedeckt) |
 | Bild nur über eine CSS-Klasse in einer externen Stylesheet-Datei eingebunden (kein Inline-Style, kein `<img>`) | ❌ (nicht erkennbar) |
+| PhotoSwipe-Lightbox (z.B. WooCommerce-Produktgalerie) | ✅ (per JS, da die Lightbox ihre Bilder erst im Browser nachbaut, siehe `assets/js/frontend.js`) |
 
 ## Technisches
 

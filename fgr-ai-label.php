@@ -2,7 +2,7 @@
 /**
  * Plugin Name:  FGR AI Label
  * Description:  Ein Plugin der Freien Gestalterischen Republik. Kennzeichnet KI-generierte oder KI-bearbeitete Bilder automatisch mit einem Logo (gemäß EU-Kennzeichnungspflicht für KI-Inhalte) – funktioniert in Gutenberg, ACF, Elementor und WPBakery, ohne das Bild selbst zu verändern.
- * Version:      1.1.5
+ * Version:      1.1.6
  * Author:       Freie Gestalterische Republik
  * Author URI:   https://fgr.design
  * License:      GPL-2.0-or-later
@@ -13,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FGR_AIL_VERSION', '1.1.5' );
+define( 'FGR_AIL_VERSION', '1.1.6' );
 define( 'FGR_AIL_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'FGR_AIL_URL',     plugin_dir_url( __FILE__ ) );
 
@@ -196,12 +196,34 @@ add_action( 'plugins_loaded', function () {
 // Statisches CSS einbinden – nur wenn tatsächlich markierte Bilder existieren.
 // Höhe/Position kommen als Inline-Style direkt am Element (siehe FGR_AI_Label_Render),
 // damit sie auch bei Cache-/CSS-Optimierungs-Plugins zuverlässig ankommen.
+//
+// Zusätzlich ein kleines JS für Lightboxen (z.B. PhotoSwipe), die ihre Bilder erst
+// nachträglich im Browser nachbauen und daher vom Output-Buffer in
+// class-fgr-ai-label-render.php nicht erreicht werden (siehe assets/js/frontend.js).
+// Die dafür nötige Zuordnung "Bild-URL -> Logo" wird als JS-Objekt mitgegeben, da
+// die Lightbox rein im Browser entsteht.
 add_action( 'wp_enqueue_scripts', function () {
     if ( is_admin() ) return;
     $map = fgr_ail_get_map();
     if ( empty( $map['by_id'] ) ) return;
 
     wp_enqueue_style( 'fgr-ai-label', FGR_AIL_URL . 'assets/css/frontend.css', [], FGR_AIL_VERSION );
+
+    wp_enqueue_script( 'fgr-ai-label', FGR_AIL_URL . 'assets/js/frontend.js', [], FGR_AIL_VERSION, true );
+
+    $logos    = [];
+    foreach ( $map['by_id'] as $id => $entry ) {
+        $logos[ $id ] = $entry['logo'];
+    }
+    $settings = fgr_ail_get_settings();
+
+    wp_localize_script( 'fgr-ai-label', 'fgrAilMap', [
+        'byUrl'    => $map['by_url'],
+        'logos'    => $logos,
+        'height'   => $settings['height'],
+        'margin'   => $settings['margin'],
+        'position' => $settings['position'],
+    ] );
 } );
 
 // Warnung, falls das Plugin über "Code herunterladen" statt über den Update-Checker
